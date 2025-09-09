@@ -2,19 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import TradingViewChart from './TradingViewChart';
-import {
-  Download,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  BarChart3,
-  Calendar,
-  RefreshCw,
-  Moon,
-  Sun,
-  Pause,
-  Play,
-} from 'lucide-react';
+import { Download, RefreshCw, Moon, Sun, Pause, Play } from 'lucide-react';
 import {
   bitgetApi,
   CandleData,
@@ -46,15 +34,29 @@ const granularityOptions = [
   { value: '1week', label: '1 Week' },
 ];
 
+const timeRangeOptions = [
+  { value: 7, label: '7 Days' },
+  { value: 30, label: '30 Days' },
+  { value: 90, label: '90 Days' },
+  { value: 180, label: '180 Days' },
+  { value: 365, label: '1 Year' },
+];
+
 const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const [symbols, setSymbols] = useState<SymbolInfo[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTCUSDT');
   const [symbolSearch, setSymbolSearch] = useState<string>('');
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] =
     useState<boolean>(false);
+  const [isTimeRangeDropdownOpen, setIsTimeRangeDropdownOpen] =
+    useState<boolean>(false);
+  const [isGranularityDropdownOpen, setIsGranularityDropdownOpen] =
+    useState<boolean>(false);
   const [customSymbol, setCustomSymbol] = useState<string>('');
   const [isValidatingSymbol, setIsValidatingSymbol] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const timeRangeDropdownRef = useRef<HTMLDivElement>(null);
+  const granularityDropdownRef = useRef<HTMLDivElement>(null);
   const [historicalData, setHistoricalData] = useState<CandleData[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -149,6 +151,18 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsSymbolDropdownOpen(false);
+      }
+      if (
+        timeRangeDropdownRef.current &&
+        !timeRangeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsTimeRangeDropdownOpen(false);
+      }
+      if (
+        granularityDropdownRef.current &&
+        !granularityDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsGranularityDropdownOpen(false);
       }
     };
 
@@ -368,16 +382,30 @@ Historical data is available in the exported CSV/JSON files.`;
               onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
               className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
             >
-              ▼
+              <svg
+                className={`w-4 h-4 transition-transform ${
+                  isSymbolDropdownOpen ? 'rotate-180' : ''
+                }`}
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M19 9l-7 7-7-7'
+                />
+              </svg>
             </button>
             {isSymbolDropdownOpen && (
-              <div className='absolute z-50 w-full mt-1 bg-transparent border-none rounded-md max-h-60 overflow-y-auto'>
+              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md max-h-60 overflow-y-auto shadow-lg'>
                 {filteredSymbols.length > 0 ? (
                   filteredSymbols.map(symbol => (
                     <button
                       key={symbol.symbol}
                       onClick={() => handleSymbolSelect(symbol.symbol)}
-                      className='w-full text-left px-3 py-2 hover:bg-transparent flex justify-between items-center'
+                      className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center transition-colors'
                     >
                       <span className='font-medium'>{symbol.symbol}</span>
                       <span className='text-sm text-gray-500'>
@@ -419,34 +447,110 @@ Historical data is available in the exported CSV/JSON files.`;
           </div>
         </div>
 
-        <div>
+        <div className='relative' ref={timeRangeDropdownRef}>
           <label className='block text-sm font-medium mb-2'>Time Range</label>
-          <select
-            value={timeRange}
-            onChange={e => setTimeRange(Number(e.target.value))}
-            className='dashboard-input w-full p-2 rounded-md'
-          >
-            <option value={7}>7 Days</option>
-            <option value={30}>30 Days</option>
-            <option value={90}>90 Days</option>
-            <option value={180}>180 Days</option>
-            <option value={365}>1 Year</option>
-          </select>
+          <div className='relative'>
+            <button
+              onClick={() =>
+                setIsTimeRangeDropdownOpen(!isTimeRangeDropdownOpen)
+              }
+              className='dashboard-input w-full p-2 rounded-md pr-8 text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors'
+            >
+              {timeRangeOptions.find(option => option.value === timeRange)
+                ?.label || '30 Days'}
+            </button>
+            <button
+              onClick={() =>
+                setIsTimeRangeDropdownOpen(!isTimeRangeDropdownOpen)
+              }
+              className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${
+                  isTimeRangeDropdownOpen ? 'rotate-180' : ''
+                }`}
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M19 9l-7 7-7-7'
+                />
+              </svg>
+            </button>
+            {isTimeRangeDropdownOpen && (
+              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md max-h-60 overflow-y-auto shadow-lg'>
+                {timeRangeOptions.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setTimeRange(option.value);
+                      setIsTimeRangeDropdownOpen(false);
+                    }}
+                    className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center transition-colors'
+                  >
+                    <span className='font-medium'>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div>
+        <div className='relative' ref={granularityDropdownRef}>
           <label className='block text-sm font-medium mb-2'>Granularity</label>
-          <select
-            value={granularity}
-            onChange={e => setGranularity(e.target.value)}
-            className='dashboard-input w-full p-2 rounded-md'
-          >
-            {granularityOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className='relative'>
+            <button
+              onClick={() =>
+                setIsGranularityDropdownOpen(!isGranularityDropdownOpen)
+              }
+              className='dashboard-input w-full p-2 rounded-md pr-8 text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors'
+            >
+              {granularityOptions.find(option => option.value === granularity)
+                ?.label || '1 Day'}
+            </button>
+            <button
+              onClick={() =>
+                setIsGranularityDropdownOpen(!isGranularityDropdownOpen)
+              }
+              className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${
+                  isGranularityDropdownOpen ? 'rotate-180' : ''
+                }`}
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M19 9l-7 7-7-7'
+                />
+              </svg>
+            </button>
+            {isGranularityDropdownOpen && (
+              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md max-h-60 overflow-y-auto shadow-lg'>
+                {granularityOptions.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setGranularity(option.value);
+                      setIsGranularityDropdownOpen(false);
+                    }}
+                    className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center transition-colors'
+                  >
+                    <span className='font-medium'>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className='flex flex-col gap-2'>
@@ -483,60 +587,44 @@ Historical data is available in the exported CSV/JSON files.`;
       {summary && (
         <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
           <div className='dashboard-card p-4 rounded-lg'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-muted'>Current Price</p>
-                <p className='text-2xl font-bold'>
-                  {formatCurrency(summary.endPrice)}
-                </p>
-              </div>
-              <DollarSign className='w-8 h-8 text-blue-500' />
+            <div>
+              <p className='text-sm text-muted'>Current Price</p>
+              <p className='text-2xl font-bold'>
+                {formatCurrency(summary.endPrice)}
+              </p>
             </div>
           </div>
 
           <div className='dashboard-card p-4 rounded-lg'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-muted'>Price Change</p>
-                <p
-                  className={cn(
-                    'text-2xl font-bold',
-                    summary.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
-                  )}
-                >
-                  {formatPercentage(summary.priceChangePercent / 100)}
-                </p>
-              </div>
-              {summary.priceChange >= 0 ? (
-                <TrendingUp className='w-8 h-8 text-green-500' />
-              ) : (
-                <TrendingDown className='w-8 h-8 text-red-500' />
-              )}
+            <div>
+              <p className='text-sm text-muted'>Price Change</p>
+              <p
+                className={cn(
+                  'text-2xl font-bold',
+                  summary.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
+                )}
+              >
+                {formatPercentage(summary.priceChangePercent / 100)}
+              </p>
             </div>
           </div>
 
           <div className='dashboard-card p-4 rounded-lg'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-muted'>High / Low</p>
-                <p className='text-lg font-bold'>
-                  {formatCurrency(summary.highestPrice)} /{' '}
-                  {formatCurrency(summary.lowestPrice)}
-                </p>
-              </div>
-              <BarChart3 className='w-8 h-8 text-purple-500' />
+            <div>
+              <p className='text-sm text-muted'>High / Low</p>
+              <p className='text-2xl font-bold'>
+                {formatCurrency(summary.highestPrice)} /{' '}
+                {formatCurrency(summary.lowestPrice)}
+              </p>
             </div>
           </div>
 
           <div className='dashboard-card p-4 rounded-lg'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-muted'>Total Volume</p>
-                <p className='text-lg font-bold'>
-                  {summary.totalVolume.toLocaleString()}
-                </p>
-              </div>
-              <Calendar className='w-8 h-8 text-orange-500' />
+            <div>
+              <p className='text-sm text-muted'>Total Volume</p>
+              <p className='text-2xl font-bold'>
+                {summary.totalVolume.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
