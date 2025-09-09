@@ -95,27 +95,29 @@ class BitgetApiService {
       } = {
         symbol,
         granularity,
-        limit: Math.min(limit, 1000) // API limit is 1000
+        limit: Math.min(limit, 1000), // API limit is 1000
       };
 
       if (startTime) params.startTime = startTime;
       if (endTime) params.endTime = endTime;
 
       const response = await axios.get(`${this.baseURL}/candles`, {
-        params
+        params,
       });
 
       const candles = response.data.data || [];
-      
-      return candles.map((candle: string[]) => ({
-        timestamp: parseInt(candle[0]),
-        open: parseFloat(candle[1]),
-        high: parseFloat(candle[2]),
-        low: parseFloat(candle[3]),
-        close: parseFloat(candle[4]),
-        volume: parseFloat(candle[5]),
-        quoteVolume: parseFloat(candle[6])
-      })).sort((a: CandleData, b: CandleData) => a.timestamp - b.timestamp);
+
+      return candles
+        .map((candle: string[]) => ({
+          timestamp: parseInt(candle[0]),
+          open: parseFloat(candle[1]),
+          high: parseFloat(candle[2]),
+          low: parseFloat(candle[3]),
+          close: parseFloat(candle[4]),
+          volume: parseFloat(candle[5]),
+          quoteVolume: parseFloat(candle[6]),
+        }))
+        .sort((a: CandleData, b: CandleData) => a.timestamp - b.timestamp);
     } catch (error) {
       console.error('Error fetching historical data:', error);
       throw new Error(`Failed to fetch historical data for ${symbol}`);
@@ -126,7 +128,7 @@ class BitgetApiService {
   async getRecentPrice(symbol: string): Promise<number> {
     try {
       const response = await axios.get(`${this.baseURL}/ticker`, {
-        params: { symbol }
+        params: { symbol },
       });
       return parseFloat(response.data.data[0].lastPr);
     } catch (error) {
@@ -136,13 +138,16 @@ class BitgetApiService {
   }
 
   // Get orderbook data for a symbol
-  async getOrderbook(symbol: string, limit: number = 100): Promise<OrderbookData> {
+  async getOrderbook(
+    symbol: string,
+    limit: number = 100
+  ): Promise<OrderbookData> {
     try {
       const response = await axios.get(`${this.baseURL}/orderbook`, {
-        params: { 
+        params: {
           symbol,
-          limit: Math.min(limit, 500) // API limit is 500
-        }
+          limit: Math.min(limit, 500), // API limit is 500
+        },
       });
       return response.data.data;
     } catch (error) {
@@ -170,11 +175,17 @@ class BitgetApiService {
       totalVolume: number;
       priceChange: number;
       priceChangePercent: number;
-    }
+    };
   }> {
     // Try without time range first, just get the most recent data
-    const data = await this.getHistoricalData(symbol, granularity, undefined, undefined, Math.min(days, 200));
-    
+    const data = await this.getHistoricalData(
+      symbol,
+      granularity,
+      undefined,
+      undefined,
+      Math.min(days, 200)
+    );
+
     if (data.length === 0) {
       throw new Error(`No data available for ${symbol}`);
     }
@@ -193,21 +204,31 @@ class BitgetApiService {
       summary: {
         totalDays: data.length,
         startDate: new Date(data[0].timestamp).toISOString().split('T')[0],
-        endDate: new Date(data[data.length - 1].timestamp).toISOString().split('T')[0],
+        endDate: new Date(data[data.length - 1].timestamp)
+          .toISOString()
+          .split('T')[0],
         startPrice,
         endPrice,
         highestPrice,
         lowestPrice,
         totalVolume,
         priceChange,
-        priceChangePercent
-      }
+        priceChangePercent,
+      },
     };
   }
 
   // Export data in CSV format for AI analysis
   exportToCSV(data: CandleData[], symbol: string): string {
-    const headers = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Quote Volume'];
+    const headers = [
+      'Date',
+      'Open',
+      'High',
+      'Low',
+      'Close',
+      'Volume',
+      'Quote Volume',
+    ];
     const rows = data.map(candle => [
       new Date(candle.timestamp).toISOString().split('T')[0],
       candle.open.toString(),
@@ -215,7 +236,7 @@ class BitgetApiService {
       candle.low.toString(),
       candle.close.toString(),
       candle.volume.toString(),
-      candle.quoteVolume.toString()
+      candle.quoteVolume.toString(),
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -223,21 +244,25 @@ class BitgetApiService {
 
   // Export data in JSON format for AI analysis
   exportToJSON(data: CandleData[], symbol: string, summary?: object): string {
-    return JSON.stringify({
-      symbol,
-      exportDate: new Date().toISOString(),
-      summary,
-      data: data.map(candle => ({
-        date: new Date(candle.timestamp).toISOString().split('T')[0],
-        timestamp: candle.timestamp,
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close,
-        volume: candle.volume,
-        quoteVolume: candle.quoteVolume
-      }))
-    }, null, 2);
+    return JSON.stringify(
+      {
+        symbol,
+        exportDate: new Date().toISOString(),
+        summary,
+        data: data.map(candle => ({
+          date: new Date(candle.timestamp).toISOString().split('T')[0],
+          timestamp: candle.timestamp,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+          volume: candle.volume,
+          quoteVolume: candle.quoteVolume,
+        })),
+      },
+      null,
+      2
+    );
   }
 }
 

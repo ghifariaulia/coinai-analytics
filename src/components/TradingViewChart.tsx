@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, IChartApi, ISeriesApi, CandlestickData, HistogramData, ColorType, Time, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import {
+  createChart,
+  IChartApi,
+  ISeriesApi,
+  CandlestickData,
+  HistogramData,
+  ColorType,
+  Time,
+  CandlestickSeries,
+  HistogramSeries,
+} from 'lightweight-charts';
 
 interface CandleData {
   timestamp: number;
@@ -20,11 +30,11 @@ interface TradingViewChartProps {
   height?: number;
 }
 
-const TradingViewChart: React.FC<TradingViewChartProps> = ({ 
-  data, 
-  symbol, 
-  isDarkMode = true, 
-  height = 400 
+const TradingViewChart: React.FC<TradingViewChartProps> = ({
+  data,
+  symbol,
+  isDarkMode = true,
+  height = 400,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -39,7 +49,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
     chartData.forEach(item => {
       const timestamp = (item.timestamp / 1000) as Time; // Convert to Unix timestamp in seconds
-      
+
       candlestickData.push({
         time: timestamp,
         open: item.open,
@@ -70,7 +80,8 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         },
         textColor: isDarkMode ? '#e5e7eb' : '#374151',
         fontSize: 12,
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily:
+          'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       },
       grid: {
         vertLines: {
@@ -183,8 +194,8 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     // Handle resize
     const handleResize = () => {
       if (chartContainerRef.current && chart) {
-        chart.applyOptions({ 
-          width: chartContainerRef.current.clientWidth 
+        chart.applyOptions({
+          width: chartContainerRef.current.clientWidth,
         });
       }
     };
@@ -230,15 +241,15 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   }, [isDarkMode]);
 
   return (
-    <div className="relative">
+    <div className='relative'>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-opacity-50 z-10">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className='absolute inset-0 flex items-center justify-center bg-opacity-50 z-10'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
         </div>
       )}
-      <div 
-        ref={chartContainerRef} 
-        className="w-full"
+      <div
+        ref={chartContainerRef}
+        className='w-full'
         style={{ height: `${height}px` }}
       />
     </div>
