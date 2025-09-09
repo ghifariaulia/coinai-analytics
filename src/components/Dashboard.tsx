@@ -52,8 +52,7 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     useState<boolean>(false);
   const [isGranularityDropdownOpen, setIsGranularityDropdownOpen] =
     useState<boolean>(false);
-  const [customSymbol, setCustomSymbol] = useState<string>('');
-  const [isValidatingSymbol, setIsValidatingSymbol] = useState<boolean>(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeRangeDropdownRef = useRef<HTMLDivElement>(null);
   const granularityDropdownRef = useRef<HTMLDivElement>(null);
@@ -81,6 +80,14 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const [orderbookError, setOrderbookError] = useState<string>('');
   const [autoRefreshOrderbook, setAutoRefreshOrderbook] =
     useState<boolean>(true);
+
+  // Pagination state for symbol dropdown
+  const [symbolPage, setSymbolPage] = useState<number>(0);
+  const [symbolsPerPage] = useState<number>(50);
+  const [showAllSymbols, setShowAllSymbols] = useState<boolean>(false);
+  const [quoteCurrencyFilter, setQuoteCurrencyFilter] =
+    useState<string>('USDT');
+  const [showPopularOnly, setShowPopularOnly] = useState<boolean>(false);
 
   const loadOrderbook = useCallback(async () => {
     setOrderbookLoading(true);
@@ -172,23 +179,57 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     };
   }, []);
 
+  // Popular symbols list for filtering
+  const popularSymbols = [
+    'BTC',
+    'ETH',
+    'BNB',
+    'ADA',
+    'SOL',
+    'XRP',
+    'DOT',
+    'DOGE',
+    'AVAX',
+    'MATIC',
+    'LINK',
+    'UNI',
+    'LTC',
+    'BCH',
+    'ATOM',
+    'FIL',
+    'TRX',
+    'ETC',
+    'XLM',
+    'SUI',
+  ];
+
   // Load available symbols on component mount
   useEffect(() => {
     const loadSymbols = async () => {
       try {
         const symbolsData = await bitgetApi.getSymbols();
-        // Filter for USDT pairs and popular coins
-        const usdtPairs = symbolsData
-          .filter(s => s.quoteCoin === 'USDT' && s.status === 'online')
-          .slice(0, 50); // Limit to first 50 for performance
-        setSymbols(usdtPairs);
+        // Filter based on quote currency and status
+        let filteredData = symbolsData.filter(
+          s => s.quoteCoin === quoteCurrencyFilter && s.status === 'online'
+        );
+
+        // Apply popular filter if enabled
+        if (showPopularOnly) {
+          filteredData = filteredData.filter(s =>
+            popularSymbols.includes(s.baseCoin)
+          );
+        }
+
+        // Sort alphabetically
+        filteredData.sort((a, b) => a.symbol.localeCompare(b.symbol));
+        setSymbols(filteredData);
       } catch (err) {
         console.error('Failed to load symbols:', err);
         setError('Failed to load available symbols');
       }
     };
     loadSymbols();
-  }, []);
+  }, [quoteCurrencyFilter, showPopularOnly]);
 
   // Load historical data when symbol or time range changes
   useEffect(() => {
@@ -214,6 +255,11 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
 
     return () => clearInterval(interval);
   }, [selectedSymbol, autoRefreshOrderbook, loadOrderbook]);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setSymbolPage(0);
+  }, [symbolSearch]);
 
   const handleExportCSV = () => {
     if (historicalData.length === 0) return;
@@ -295,37 +341,36 @@ Historical data is available in the exported CSV/JSON files.`;
       symbol.baseCoin.toLowerCase().includes(symbolSearch.toLowerCase())
   );
 
+  // Pagination logic for symbols
+  const totalPages = Math.ceil(filteredSymbols.length / symbolsPerPage);
+  const paginatedSymbols = showAllSymbols
+    ? filteredSymbols
+    : filteredSymbols.slice(
+        symbolPage * symbolsPerPage,
+        (symbolPage + 1) * symbolsPerPage
+      );
+
+  const handleNextPage = () => {
+    if (symbolPage < totalPages - 1) {
+      setSymbolPage(symbolPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (symbolPage > 0) {
+      setSymbolPage(symbolPage - 1);
+    }
+  };
+
+  const toggleShowAllSymbols = () => {
+    setShowAllSymbols(!showAllSymbols);
+    setSymbolPage(0); // Reset to first page when toggling
+  };
+
   const handleSymbolSelect = (symbol: string) => {
     setSelectedSymbol(symbol);
     setSymbolSearch('');
     setIsSymbolDropdownOpen(false);
-  };
-
-  const validateAndSetCustomSymbol = async (symbol: string) => {
-    if (!symbol.trim()) return;
-
-    setIsValidatingSymbol(true);
-    setError('');
-
-    try {
-      // Try to fetch recent data to validate the symbol
-      await bitgetApi.getRecentPrice(symbol.toUpperCase());
-      setSelectedSymbol(symbol.toUpperCase());
-      setCustomSymbol('');
-      setSymbolSearch('');
-      setIsSymbolDropdownOpen(false);
-    } catch (err) {
-      setError(
-        `Error: ${err} Symbol "${symbol.toUpperCase()}" not found or not available on Bitget`
-      );
-    } finally {
-      setIsValidatingSymbol(false);
-    }
-  };
-
-  const handleCustomSymbolSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    validateAndSetCustomSymbol(customSymbol);
   };
 
   return (
@@ -399,51 +444,70 @@ Historical data is available in the exported CSV/JSON files.`;
               </svg>
             </button>
             {isSymbolDropdownOpen && (
-              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md max-h-60 overflow-y-auto shadow-lg'>
-                {filteredSymbols.length > 0 ? (
-                  filteredSymbols.map(symbol => (
+              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md max-h-80 overflow-hidden shadow-lg'>
+                {/* Header with controls */}
+                <div className='px-3 py-2 border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'>
+                  <div className='flex justify-between items-center text-xs'>
+                    <span className='text-gray-600 dark:text-gray-400'>
+                      {filteredSymbols.length} symbols found
+                    </span>
                     <button
-                      key={symbol.symbol}
-                      onClick={() => handleSymbolSelect(symbol.symbol)}
-                      className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center transition-colors'
+                      onClick={toggleShowAllSymbols}
+                      className='text-blue-600 dark:text-blue-400 hover:underline'
                     >
-                      <span className='font-medium'>{symbol.symbol}</span>
-                      <span className='text-sm text-gray-500'>
-                        {symbol.baseCoin}
-                      </span>
+                      {showAllSymbols ? 'Show paginated' : 'Show all'}
                     </button>
-                  ))
-                ) : (
-                  <div className='px-3 py-2 text-gray-500 text-sm'>
-                    No symbols found in top 50
+                  </div>
+                </div>
+
+                {/* Symbol list */}
+                <div className='max-h-48 overflow-y-auto'>
+                  {paginatedSymbols.length > 0 ? (
+                    paginatedSymbols.map(symbol => (
+                      <button
+                        key={symbol.symbol}
+                        onClick={() => handleSymbolSelect(symbol.symbol)}
+                        className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center transition-colors'
+                      >
+                        <span className='font-medium'>{symbol.symbol}</span>
+                        <span className='text-sm text-gray-500'>
+                          {symbol.baseCoin}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className='px-3 py-2 text-gray-500 text-sm'>
+                      No symbols found
+                    </div>
+                  )}
+                </div>
+
+                {/* Pagination controls */}
+                {!showAllSymbols && totalPages > 1 && (
+                  <div className='px-3 py-2 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'>
+                    <div className='flex justify-between items-center text-xs'>
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={symbolPage === 0}
+                        className='text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed'
+                      >
+                        Previous
+                      </button>
+                      <span className='text-gray-600 dark:text-gray-400'>
+                        Page {symbolPage + 1} of {totalPages}
+                      </span>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={symbolPage >= totalPages - 1}
+                        className='text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed'
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             )}
-          </div>
-
-          {/* Manual Symbol Entry */}
-          <div className='mt-3 pt-3'>
-            <label className='block text-xs font-medium mb-2 text-gray-600 dark:text-gray-400'>
-              Or enter any symbol manually:
-            </label>
-            <form onSubmit={handleCustomSymbolSubmit} className='flex gap-2'>
-              <input
-                type='text'
-                value={customSymbol}
-                onChange={e => setCustomSymbol(e.target.value.toUpperCase())}
-                placeholder='e.g., ETHUSDT'
-                className='dashboard-input flex-1 p-2 text-sm rounded-md'
-                disabled={isValidatingSymbol}
-              />
-              <button
-                type='submit'
-                disabled={!customSymbol.trim() || isValidatingSymbol}
-                className='px-3 py-2 bg-transparent text-white text-sm rounded-md hover:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {isValidatingSymbol ? '...' : 'Add'}
-              </button>
-            </form>
           </div>
         </div>
 
