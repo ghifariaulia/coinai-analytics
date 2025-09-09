@@ -1,4 +1,4 @@
-# CoinScraper Analytics - AI Integration & Backtesting Guide
+# CoinAI Analytics - AI Integration & Backtesting Guide
 
 ## Overview
 
