@@ -294,7 +294,7 @@ Historical data is available in the exported CSV/JSON files.`;
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">CoinScraper Analytics</h1>
+          <h1 className="text-3xl font-bold">CoinAI Analytics</h1>
           <p className="text-muted mt-1">Historical data analysis for AI-powered trading insights</p>
         </div>
         <button
