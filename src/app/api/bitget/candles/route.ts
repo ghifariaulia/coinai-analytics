@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Map UI granularity values to API granularity values
+function mapGranularity(granularity: string): string {
+  const granularityMap: { [key: string]: string } = {
+    '1min': '1min',
+    '5min': '5min',
+    '15min': '15min',
+    '1h': '1h',
+    '4h': '4h',
+    '1day': '1day',
+    '1week': '1week',
+    '1month': '1M',
+  };
+  return granularityMap[granularity] || granularity;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol');
-    const granularity = searchParams.get('granularity') || '1D';
+    const granularity = mapGranularity(searchParams.get('granularity') || '1D');
     const startTime = searchParams.get('startTime');
     const endTime = searchParams.get('endTime');
     const limit = searchParams.get('limit') || '200';

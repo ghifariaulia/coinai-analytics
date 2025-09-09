@@ -55,6 +55,21 @@ class BitgetApiService {
     this.baseURL = API_BASE_URL;
   }
 
+  // Map UI granularity values to API granularity values
+  private mapGranularity(granularity: string): string {
+    const granularityMap: { [key: string]: string } = {
+      '1min': '1min',
+      '5min': '5min',
+      '15min': '15min',
+      '1h': '1h',
+      '4h': '4h',
+      '1day': '1day',
+      '1week': '1week',
+      '1month': '1M',
+    };
+    return granularityMap[granularity] || granularity;
+  }
+
   // Get all available symbols
   async getSymbols(): Promise<SymbolInfo[]> {
     try {
@@ -94,7 +109,7 @@ class BitgetApiService {
         endTime?: string;
       } = {
         symbol,
-        granularity,
+        granularity: this.mapGranularity(granularity),
         limit: Math.min(limit, 1000), // API limit is 1000
       };
 
@@ -177,14 +192,68 @@ class BitgetApiService {
       priceChangePercent: number;
     };
   }> {
-    // Try without time range first, just get the most recent data
-    const data = await this.getHistoricalData(
+    // Calculate the proper date range
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - days * 24 * 60 * 60 * 1000);
+
+    // Convert to milliseconds for the API
+    const startTimeMs = startTime.getTime().toString();
+    const endTimeMs = endTime.getTime().toString();
+
+    // Calculate appropriate limit based on granularity and days
+    let limit = 1000; // API maximum
+
+    // Estimate how many data points we need based on granularity
+    switch (granularity) {
+      case '1min':
+        limit = Math.min(days * 24 * 60, 1000); // 1 point per minute
+        break;
+      case '5min':
+        limit = Math.min(days * 24 * 12, 1000); // 12 points per hour
+        break;
+      case '15min':
+        limit = Math.min(days * 24 * 4, 1000); // 4 points per hour
+        break;
+      case '1h':
+        limit = Math.min(days * 24, 1000); // 24 points per day
+        break;
+      case '4h':
+        limit = Math.min(days * 6, 1000); // 6 points per day
+        break;
+      case '1day':
+        limit = Math.min(days, 1000); // 1 point per day
+        break;
+      case '1week':
+        limit = Math.min(Math.ceil(days / 7), 1000); // 1 point per week
+        break;
+      case '1month':
+        limit = Math.min(Math.ceil(days / 30), 1000); // 1 point per month
+        break;
+      default:
+        limit = Math.min(days, 1000);
+    }
+
+    let data = await this.getHistoricalData(
       symbol,
       granularity,
-      undefined,
-      undefined,
-      Math.min(days, 200)
+      startTimeMs,
+      endTimeMs,
+      limit
     );
+
+    // If no data found for the specific time range, try to get recent data as fallback
+    if (data.length === 0) {
+      console.warn(
+        `No data found for ${symbol} in specified time range, trying recent data...`
+      );
+      data = await this.getHistoricalData(
+        symbol,
+        granularity,
+        undefined,
+        undefined,
+        Math.min(limit, 200)
+      );
+    }
 
     if (data.length === 0) {
       throw new Error(`No data available for ${symbol}`);

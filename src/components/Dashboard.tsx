@@ -32,14 +32,20 @@ const granularityOptions = [
   { value: '4h', label: '4 Hours' },
   { value: '1day', label: '1 Day' },
   { value: '1week', label: '1 Week' },
+  { value: '1month', label: '1 Month' },
 ];
 
 const timeRangeOptions = [
+  { value: 1, label: '1 Day' },
+  { value: 3, label: '3 Days' },
   { value: 7, label: '7 Days' },
+  { value: 14, label: '2 Weeks' },
   { value: 30, label: '30 Days' },
-  { value: 90, label: '90 Days' },
-  { value: 180, label: '180 Days' },
+  { value: 60, label: '2 Months' },
+  { value: 90, label: '3 Months' },
+  { value: 180, label: '6 Months' },
   { value: 365, label: '1 Year' },
+  { value: 730, label: '2 Years' },
 ];
 
 const Dashboard: React.FC<DashboardProps> = ({ className }) => {
