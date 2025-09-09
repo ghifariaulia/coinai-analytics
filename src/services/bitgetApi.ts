@@ -271,7 +271,7 @@ class BitgetApiService {
       symbol,
       data,
       summary: {
-        totalDays: data.length,
+        totalDays: days,
         startDate: new Date(data[0].timestamp).toISOString().split('T')[0],
         endDate: new Date(data[data.length - 1].timestamp)
           .toISOString()
