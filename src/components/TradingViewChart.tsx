@@ -243,7 +243,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   return (
     <div className='relative'>
       {isLoading && (
-        <div className='absolute inset-0 flex items-center justify-center bg-opacity-50 z-10'>
+        <div className='absolute inset-0 flex items-center justify-center bg-transparent z-10'>
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
         </div>
       )}

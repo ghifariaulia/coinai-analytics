@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import TradingViewChart from './TradingViewChart';
 import {
   Download,
@@ -80,6 +80,50 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const [autoRefreshOrderbook, setAutoRefreshOrderbook] =
     useState<boolean>(true);
 
+  const loadOrderbook = useCallback(async () => {
+    setOrderbookLoading(true);
+    setOrderbookError('');
+    try {
+      const orderbookData = await bitgetApi.getOrderbook(selectedSymbol, 20);
+      setOrderbook(orderbookData);
+    } catch (err) {
+      console.error('Failed to load orderbook:', err);
+      setOrderbookError(`Failed to load orderbook for ${selectedSymbol}`);
+    } finally {
+      setOrderbookLoading(false);
+    }
+  }, [selectedSymbol]);
+
+  const loadHistoricalData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await bitgetApi.getDataForAI(
+        selectedSymbol,
+        timeRange,
+        granularity
+      );
+      setHistoricalData(result.data);
+      setSummary(result.summary);
+
+      // Transform data for chart (keep original for TradingView)
+      const transformed = result.data.map(item => ({
+        date: new Date(item.timestamp).toLocaleDateString(),
+        open: item.open,
+        high: item.high,
+        low: item.low,
+        close: item.close,
+        volume: item.volume,
+      }));
+      setChartData(transformed);
+    } catch (err) {
+      console.error('Failed to load historical data:', err);
+      setError(`Failed to load data for ${selectedSymbol}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSymbol, timeRange, granularity]);
+
   // Apply dark mode to document
   useEffect(() => {
     console.log('Dark mode useEffect triggered, isDarkMode:', isDarkMode);
@@ -137,14 +181,14 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     if (selectedSymbol) {
       loadHistoricalData();
     }
-  }, [selectedSymbol, timeRange, granularity]);
+  }, [selectedSymbol, timeRange, granularity, loadHistoricalData]);
 
   // Load orderbook data when symbol changes
   useEffect(() => {
     if (selectedSymbol) {
       loadOrderbook();
     }
-  }, [selectedSymbol]);
+  }, [selectedSymbol, loadOrderbook]);
 
   // Auto-refresh orderbook every 30 seconds (less distracting)
   useEffect(() => {
@@ -155,51 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [selectedSymbol, autoRefreshOrderbook]);
-
-  const loadHistoricalData = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const result = await bitgetApi.getDataForAI(
-        selectedSymbol,
-        timeRange,
-        granularity
-      );
-      setHistoricalData(result.data);
-      setSummary(result.summary);
-
-      // Transform data for chart (keep original for TradingView)
-      const transformed = result.data.map(item => ({
-        date: new Date(item.timestamp).toLocaleDateString(),
-        open: item.open,
-        high: item.high,
-        low: item.low,
-        close: item.close,
-        volume: item.volume,
-      }));
-      setChartData(transformed);
-    } catch (err) {
-      console.error('Failed to load historical data:', err);
-      setError(`Failed to load data for ${selectedSymbol}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadOrderbook = async () => {
-    setOrderbookLoading(true);
-    setOrderbookError('');
-    try {
-      const orderbookData = await bitgetApi.getOrderbook(selectedSymbol, 20);
-      setOrderbook(orderbookData);
-    } catch (err) {
-      console.error('Failed to load orderbook:', err);
-      setOrderbookError(`Failed to load orderbook for ${selectedSymbol}`);
-    } finally {
-      setOrderbookLoading(false);
-    }
-  };
+  }, [selectedSymbol, autoRefreshOrderbook, loadOrderbook]);
 
   const handleExportCSV = () => {
     if (historicalData.length === 0) return;
@@ -302,7 +302,7 @@ Historical data is available in the exported CSV/JSON files.`;
       setIsSymbolDropdownOpen(false);
     } catch (err) {
       setError(
-        `Symbol "${symbol.toUpperCase()}" not found or not available on Bitget`
+        `Error: ${err} Symbol "${symbol.toUpperCase()}" not found or not available on Bitget`
       );
     } finally {
       setIsValidatingSymbol(false);
@@ -371,13 +371,13 @@ Historical data is available in the exported CSV/JSON files.`;
               ▼
             </button>
             {isSymbolDropdownOpen && (
-              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto'>
+              <div className='absolute z-50 w-full mt-1 bg-transparent border-none rounded-md max-h-60 overflow-y-auto'>
                 {filteredSymbols.length > 0 ? (
                   filteredSymbols.map(symbol => (
                     <button
                       key={symbol.symbol}
                       onClick={() => handleSymbolSelect(symbol.symbol)}
-                      className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center'
+                      className='w-full text-left px-3 py-2 hover:bg-transparent flex justify-between items-center'
                     >
                       <span className='font-medium'>{symbol.symbol}</span>
                       <span className='text-sm text-gray-500'>
@@ -395,7 +395,7 @@ Historical data is available in the exported CSV/JSON files.`;
           </div>
 
           {/* Manual Symbol Entry */}
-          <div className='mt-3 pt-3 border-t border-gray-200 dark:border-gray-600'>
+          <div className='mt-3 pt-3'>
             <label className='block text-xs font-medium mb-2 text-gray-600 dark:text-gray-400'>
               Or enter any symbol manually:
             </label>
@@ -411,7 +411,7 @@ Historical data is available in the exported CSV/JSON files.`;
               <button
                 type='submit'
                 disabled={!customSymbol.trim() || isValidatingSymbol}
-                className='px-3 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed'
+                className='px-3 py-2 bg-transparent text-white text-sm rounded-md hover:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 {isValidatingSymbol ? '...' : 'Add'}
               </button>
@@ -455,17 +455,17 @@ Historical data is available in the exported CSV/JSON files.`;
             <button
               onClick={handleExportCSV}
               disabled={historicalData.length === 0}
-              className='dashboard-button-secondary flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md disabled:opacity-50 text-sm'
+              className='dashboard-button-secondary flex items-center justify-center gap-1 px-2 py-3 rounded-md disabled:opacity-50 text-sm'
             >
-              <Download className='w-3 h-3' />
+              <Download className='w-4 h-4' />
               CSV
             </button>
             <button
               onClick={handleExportJSON}
               disabled={historicalData.length === 0}
-              className='dashboard-button-secondary flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md disabled:opacity-50 text-sm'
+              className='dashboard-button-secondary flex items-center justify-center gap-1 px-2 py-3 rounded-md disabled:opacity-50 text-sm'
             >
-              <Download className='w-3 h-3' />
+              <Download className='w-4 h-4' />
               JSON
             </button>
           </div>
@@ -474,7 +474,7 @@ Historical data is available in the exported CSV/JSON files.`;
 
       {/* Error Display */}
       {error && (
-        <div className='dashboard-card p-4 rounded-lg border-red-500'>
+        <div className='dashboard-card p-4 rounded-lg'>
           <p className='text-red-600'>{error}</p>
         </div>
       )}
@@ -576,8 +576,8 @@ Historical data is available in the exported CSV/JSON files.`;
               className={cn(
                 'flex items-center gap-2 px-3 py-1 rounded-md text-sm',
                 autoRefreshOrderbook
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                  ? 'bg-transparent text-green-700 hover:bg-transparent dark:text-green-400 dark:hover:bg-transparent'
+                  : 'bg-transparent text-gray-700 hover:bg-transparent dark:text-gray-400 dark:hover:bg-transparent'
               )}
               title={
                 autoRefreshOrderbook
@@ -606,7 +606,7 @@ Historical data is available in the exported CSV/JSON files.`;
         </div>
 
         {orderbookError && (
-          <div className='dashboard-card p-3 rounded-lg border-red-500 mb-4'>
+          <div className='dashboard-card p-3 rounded-lg mb-4'>
             <p className='text-red-600 text-sm'>{orderbookError}</p>
           </div>
         )}
@@ -638,7 +638,7 @@ Historical data is available in the exported CSV/JSON files.`;
                     return (
                       <div
                         key={index}
-                        className='grid grid-cols-3 gap-2 text-sm py-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded px-2'
+                        className='grid grid-cols-3 gap-2 text-sm py-1 hover:bg-transparent rounded px-2'
                       >
                         <span className='text-red-600 font-mono'>
                           {formatCurrency(price)}
@@ -673,7 +673,7 @@ Historical data is available in the exported CSV/JSON files.`;
                   return (
                     <div
                       key={index}
-                      className='grid grid-cols-3 gap-2 text-sm py-1 hover:bg-green-50 dark:hover:bg-green-900/20 rounded px-2'
+                      className='grid grid-cols-3 gap-2 text-sm py-1 hover:bg-transparent rounded px-2'
                     >
                       <span className='text-green-600 font-mono'>
                         {formatCurrency(price)}
