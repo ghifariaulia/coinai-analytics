@@ -2,7 +2,39 @@
 
 :root {
   --background: #ffffff;
+  --background-color: #ffffff;
   --foreground: #171717;
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --input-background: #ffffff;
+  --input-border: #d1d5db;
+  --button-background: #3b82f6;
+  --button-hover: #2563eb;
+  --button-text: #ffffff;
+  --secondary-button: #f3f4f6;
+  --secondary-button-hover: #e5e7eb;
+  --secondary-button-text: #374151;
+  --text-muted: #6b7280;
+  --border-color: #e5e7eb;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card-background: #1f2937;
+  --card-border: #374151;
+  --input-background: #374151;
+  --input-border: #4b5563;
+  --button-background: #3b82f6;
+  --button-hover: #2563eb;
+  --button-text: #ffffff;
+  --secondary-button: #374151;
+  --secondary-button-hover: #4b5563;
+  --secondary-button-text: #e5e7eb;
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+  --shadow: rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
@@ -12,15 +44,83 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
-body {
-  background: var(--background);
+/* Dashboard specific styles */
+.dashboard-card {
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 1px 3px var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.dashboard-input {
+  background: var(--input-background);
+  border: 1px solid var(--input-border);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  transition: all 0.3s ease;
+}
+
+.dashboard-input:focus {
+  border-color: var(--button-background);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.dashboard-button {
+  background: var(--button-background);
+  color: var(--button-text);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.dashboard-button:hover {
+  background: var(--button-hover);
+}
+
+.dashboard-button-secondary {
+  background: var(--secondary-button);
+  color: var(--secondary-button-text);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.dashboard-button-secondary:hover {
+  background: var(--secondary-button-hover);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* Dark mode toggle button */
+.dark-mode-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: var(--secondary-button);
+  color: var(--secondary-button-text);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dark-mode-toggle:hover {
+  background: var(--secondary-button-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--shadow);
 }
