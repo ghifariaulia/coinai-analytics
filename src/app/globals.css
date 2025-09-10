@@ -125,7 +125,7 @@ body {
   color: var(--secondary-button-text);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 14px;

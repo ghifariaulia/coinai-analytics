@@ -25,14 +25,14 @@ interface CandleData {
 
 interface TradingViewChartProps {
   data: CandleData[];
-  symbol?: string;
+  coin?: string;
   isDarkMode?: boolean;
   height?: number;
 }
 
 const TradingViewChart: React.FC<TradingViewChartProps> = ({
   data,
-  symbol,
+  coin,
   isDarkMode = true,
   height = 400,
 }) => {

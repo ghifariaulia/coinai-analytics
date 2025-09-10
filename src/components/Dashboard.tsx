@@ -55,12 +55,11 @@ const marketTypeOptions = [
 ];
 
 const Dashboard: React.FC<DashboardProps> = ({ className }) => {
-  const [symbols, setSymbols] = useState<SymbolInfo[]>([]);
-  const [selectedSymbol, setSelectedSymbol] = useState<string>('BTCUSDT');
+  const [coins, setCoins] = useState<SymbolInfo[]>([]);
+  const [selectedCoin, setSelectedCoin] = useState<string>('BTCUSDT');
   const [marketType, setMarketType] = useState<MarketType>('spot');
-  const [symbolSearch, setSymbolSearch] = useState<string>('');
-  const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] =
-    useState<boolean>(false);
+  const [coinSearch, setCoinSearch] = useState<string>('');
+  const [isCoinDropdownOpen, setIsCoinDropdownOpen] = useState<boolean>(false);
   const [isTimeRangeDropdownOpen, setIsTimeRangeDropdownOpen] =
     useState<boolean>(false);
   const [isGranularityDropdownOpen, setIsGranularityDropdownOpen] =
@@ -97,10 +96,10 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const [autoRefreshOrderbook, setAutoRefreshOrderbook] =
     useState<boolean>(true);
 
-  // Pagination state for symbol dropdown
-  const [symbolPage, setSymbolPage] = useState<number>(0);
-  const [symbolsPerPage] = useState<number>(50);
-  const [showAllSymbols, setShowAllSymbols] = useState<boolean>(false);
+  // Pagination state for coin dropdown
+  const [coinPage, setCoinPage] = useState<number>(0);
+  const [coinsPerPage] = useState<number>(50);
+  const [showAllCoins, setShowAllCoins] = useState<boolean>(false);
   const [quoteCurrencyFilter, setQuoteCurrencyFilter] =
     useState<string>('USDT');
   const [showPopularOnly, setShowPopularOnly] = useState<boolean>(false);
@@ -111,17 +110,17 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     try {
       const orderbookData = await bitgetApi.getOrderbookByMarket(
         marketType as MarketType,
-        selectedSymbol,
+        selectedCoin,
         20
       );
       setOrderbook(orderbookData);
     } catch (err) {
       console.error('Failed to load orderbook:', err);
-      setOrderbookError(`Failed to load orderbook for ${selectedSymbol}`);
+      setOrderbookError(`Failed to load orderbook for ${selectedCoin}`);
     } finally {
       setOrderbookLoading(false);
     }
-  }, [selectedSymbol, marketType]);
+  }, [selectedCoin, marketType]);
 
   const loadHistoricalData = useCallback(async () => {
     setLoading(true);
@@ -129,7 +128,7 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     try {
       const result = await bitgetApi.getDataForAIByMarket(
         marketType as MarketType,
-        selectedSymbol,
+        selectedCoin,
         timeRange,
         granularity
       );
@@ -148,11 +147,11 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       setChartData(transformed);
     } catch (err) {
       console.error('Failed to load historical data:', err);
-      setError(`Failed to load data for ${selectedSymbol}`);
+      setError(`Failed to load data for ${selectedCoin}`);
     } finally {
       setLoading(false);
     }
-  }, [selectedSymbol, marketType, timeRange, granularity]);
+  }, [selectedCoin, marketType, timeRange, granularity]);
 
   // Apply dark mode to document
   useEffect(() => {
@@ -178,7 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsSymbolDropdownOpen(false);
+        setIsCoinDropdownOpen(false);
       }
       if (
         timeRangeDropdownRef.current &&
@@ -206,8 +205,8 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     };
   }, []);
 
-  // Popular symbols list for filtering
-  const popularSymbols = [
+  // Popular coins list for filtering
+  const popularCoins = [
     'BTC',
     'ETH',
     'BNB',
@@ -230,77 +229,77 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     'SUI',
   ];
 
-  // Load available symbols on component mount
+  // Load available coins on component mount
   useEffect(() => {
-    const loadSymbols = async () => {
+    const loadCoins = async () => {
       try {
-        const symbolsData = await bitgetApi.getSymbolsByMarket(
+        const coinsData = await bitgetApi.getSymbolsByMarket(
           marketType as MarketType
         );
         // Filter based on quote currency and status
-        // Note: spot symbols use 'online', futures symbols use 'normal'
+        // Note: spot coins use 'online', futures coins use 'normal'
         const validStatus = marketType === 'futures' ? 'normal' : 'online';
-        let filteredData = symbolsData.filter(
+        let filteredData = coinsData.filter(
           s => s.quoteCoin === quoteCurrencyFilter && s.status === validStatus
         );
 
         // Apply popular filter if enabled
         if (showPopularOnly) {
           filteredData = filteredData.filter(s =>
-            popularSymbols.includes(s.baseCoin)
+            popularCoins.includes(s.baseCoin)
           );
         }
 
         // Sort alphabetically
         filteredData.sort((a, b) => a.symbol.localeCompare(b.symbol));
-        setSymbols(filteredData as SymbolInfo[]);
+        setCoins(filteredData as SymbolInfo[]);
       } catch (err) {
-        console.error('Failed to load symbols:', err);
-        setError('Failed to load available symbols');
+        console.error('Failed to load coins:', err);
+        setError('Failed to load available coins');
       }
     };
-    loadSymbols();
+    loadCoins();
   }, [quoteCurrencyFilter, showPopularOnly, marketType]);
 
-  // Load historical data when symbol or time range changes
+  // Load historical data when coin or time range changes
   useEffect(() => {
-    if (selectedSymbol) {
+    if (selectedCoin) {
       loadHistoricalData();
     }
-  }, [selectedSymbol, timeRange, granularity, loadHistoricalData]);
+  }, [selectedCoin, timeRange, granularity, loadHistoricalData]);
 
-  // Load orderbook data when symbol changes
+  // Load orderbook data when coin changes
   useEffect(() => {
-    if (selectedSymbol) {
+    if (selectedCoin) {
       loadOrderbook();
     }
-  }, [selectedSymbol, loadOrderbook]);
+  }, [selectedCoin, loadOrderbook]);
 
   // Auto-refresh orderbook every 30 seconds (less distracting)
   useEffect(() => {
-    if (!selectedSymbol || !autoRefreshOrderbook) return;
+    if (!selectedCoin || !autoRefreshOrderbook) return;
 
     const interval = setInterval(() => {
       loadOrderbook();
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [selectedSymbol, autoRefreshOrderbook, loadOrderbook]);
+  }, [selectedCoin, autoRefreshOrderbook, loadOrderbook]);
 
-  // Reset pagination when search changes
+  // Reset pagination when coin search changes
   useEffect(() => {
-    setSymbolPage(0);
-  }, [symbolSearch]);
+    setCoinPage(0);
+  }, [coinSearch]);
 
   const handleExportCSV = () => {
     if (historicalData.length === 0) return;
 
-    const csv = bitgetApi.exportToCSV(historicalData, selectedSymbol);
+    const csv = bitgetApi.exportToCSV(historicalData, selectedCoin);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${selectedSymbol}_${timeRange}days_${granularity}.csv`;
+    a.download = `${selectedCoin}_${timeRange}days_${granularity}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -312,14 +311,14 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
 
     const json = bitgetApi.exportToJSON(
       historicalData,
-      selectedSymbol,
+      selectedCoin,
       summary || undefined
     );
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${selectedSymbol}_${timeRange}days_${granularity}.json`;
+    a.download = `${selectedCoin}_${timeRange}days_${granularity}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -333,9 +332,16 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       granularityOptions.find(option => option.value === granularity)?.label ||
       granularity;
 
-    return `Analyze this cryptocurrency data for ${selectedSymbol}:
+    return `ROLE:
 
-Summary:
+Act as an elite cryptocurrency research analyst at a top-tier digital asset fund.
+Your task is to analyze a cryptocurrency using both fundamental and macroeconomic perspectives. Structure your response according to the framework below.
+
+Input Section
+
+Crypto Token / Coin: ${selectedCoin}
+
+Data Summary:
 - Period: ${summary.startDate} to ${summary.endDate} (${summary.totalDays} days)
 - Data Granularity: ${granularityLabel}
 - Price Range: ${formatCurrency(summary.lowestPrice)} - ${formatCurrency(summary.highestPrice)}
@@ -344,12 +350,41 @@ Summary:
 - Price Change: ${formatCurrency(summary.priceChange)} (${formatPercentage(summary.priceChangePercent / 100)})
 - Total Volume: ${summary.totalVolume.toLocaleString()}
 
-Please provide:
-1. Technical analysis of the price movement
-2. Key support and resistance levels
-3. Trading recommendations
-4. Risk assessment
-5. Potential future price targets
+Instructions:
+
+Use the following structure to deliver a clear, well-reasoned crypto research report:
+
+1. Fundamental Analysis
+- Analyze price momentum, volume trends, and market cap dynamics
+- Compare valuation metrics vs sector peers (market cap, trading volume, etc.)
+- Review on-chain metrics, whale activity, and exchange flows
+
+2. Thesis Validation
+- Present 3 arguments supporting the thesis
+- Highlight 2 counter-arguments or key risks
+- Provide a final **verdict**: Bullish / Bearish / Neutral with justification
+
+3. Sector & Macro View
+- Give a short crypto sector overview
+- Outline relevant macroeconomic trends affecting crypto
+- Explain token's competitive positioning within its ecosystem
+
+4. Catalyst Watch
+- List upcoming events (protocol upgrades, partnerships, regulatory developments, etc.)
+- Identify both **short-term** and **long-term** catalysts
+
+5. Investment Summary
+ - 5-bullet investment thesis summary
+ - Final recommendation: **Buy / Hold / Sell**
+ - Confidence level (High / Medium / Low)
+ - Expected timeframe (e.g. 6–12 months)
+ - **Futures Setup**: Long or Short position recommendation with entry/exit levels
+
+✅ Formatting Requirements
+- Use **markdown**
+- Use **bullet points** where appropriate
+- Be **concise, professional, and insight-driven**
+- Do **not** explain your process just deliver the analysis
 
 Historical data is available in the exported CSV/JSON files.`;
   };
@@ -365,43 +400,43 @@ Historical data is available in the exported CSV/JSON files.`;
     setIsDarkMode(!isDarkMode);
   };
 
-  // Filter symbols based on search
-  const filteredSymbols = symbols.filter(
-    symbol =>
-      symbol.symbol.toLowerCase().includes(symbolSearch.toLowerCase()) ||
-      symbol.baseCoin.toLowerCase().includes(symbolSearch.toLowerCase())
+  // Filter coins based on search
+  const filteredCoins = coins.filter(
+    coin =>
+      coin.symbol.toLowerCase().includes(coinSearch.toLowerCase()) ||
+      coin.baseCoin.toLowerCase().includes(coinSearch.toLowerCase())
   );
 
-  // Pagination logic for symbols
-  const totalPages = Math.ceil(filteredSymbols.length / symbolsPerPage);
-  const paginatedSymbols = showAllSymbols
-    ? filteredSymbols
-    : filteredSymbols.slice(
-        symbolPage * symbolsPerPage,
-        (symbolPage + 1) * symbolsPerPage
+  // Pagination logic for coins
+  const totalPages = Math.ceil(filteredCoins.length / coinsPerPage);
+  const paginatedCoins = showAllCoins
+    ? filteredCoins
+    : filteredCoins.slice(
+        coinPage * coinsPerPage,
+        (coinPage + 1) * coinsPerPage
       );
 
   const handleNextPage = () => {
-    if (symbolPage < totalPages - 1) {
-      setSymbolPage(symbolPage + 1);
+    if (coinPage < totalPages - 1) {
+      setCoinPage(coinPage + 1);
     }
   };
 
   const handlePrevPage = () => {
-    if (symbolPage > 0) {
-      setSymbolPage(symbolPage - 1);
+    if (coinPage > 0) {
+      setCoinPage(coinPage - 1);
     }
   };
 
-  const toggleShowAllSymbols = () => {
-    setShowAllSymbols(!showAllSymbols);
-    setSymbolPage(0); // Reset to first page when toggling
+  const toggleShowAllCoins = () => {
+    setShowAllCoins(!showAllCoins);
+    setCoinPage(0); // Reset to first page when toggling
   };
 
-  const handleSymbolSelect = (symbol: string) => {
-    setSelectedSymbol(symbol);
-    setSymbolSearch('');
-    setIsSymbolDropdownOpen(false);
+  const handleCoinSelect = (coin: string) => {
+    setSelectedCoin(coin);
+    setCoinSearch('');
+    setIsCoinDropdownOpen(false);
   };
 
   return (
@@ -417,7 +452,6 @@ Historical data is available in the exported CSV/JSON files.`;
         ) : (
           <Moon className='w-4 h-4' />
         )}
-        {isDarkMode ? 'Light' : 'Dark'}
       </button>
 
       {/* Header */}
@@ -441,26 +475,26 @@ Historical data is available in the exported CSV/JSON files.`;
       {/* Controls */}
       <div className='dashboard-card grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg'>
         <div className='relative' ref={dropdownRef}>
-          <label className='block text-sm font-medium mb-2'>Symbol</label>
+          <label className='block text-sm font-medium mb-2'>Coin</label>
           <div className='relative'>
             <input
               type='text'
-              value={isSymbolDropdownOpen ? symbolSearch : selectedSymbol}
+              value={isCoinDropdownOpen ? coinSearch : selectedCoin}
               onChange={e => {
-                setSymbolSearch(e.target.value);
-                setIsSymbolDropdownOpen(true);
+                setCoinSearch(e.target.value);
+                setIsCoinDropdownOpen(true);
               }}
-              onFocus={() => setIsSymbolDropdownOpen(true)}
-              placeholder='Search symbols...'
+              onFocus={() => setIsCoinDropdownOpen(true)}
+              placeholder='Search coins...'
               className='dashboard-input w-full p-2 rounded-md pr-8'
             />
             <button
-              onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
+              onClick={() => setIsCoinDropdownOpen(!isCoinDropdownOpen)}
               className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
             >
               <svg
                 className={`w-4 h-4 transition-transform ${
-                  isSymbolDropdownOpen ? 'rotate-180' : ''
+                  isCoinDropdownOpen ? 'rotate-180' : ''
                 }`}
                 fill='none'
                 stroke='currentColor'
@@ -474,62 +508,62 @@ Historical data is available in the exported CSV/JSON files.`;
                 />
               </svg>
             </button>
-            {isSymbolDropdownOpen && (
+            {isCoinDropdownOpen && (
               <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md max-h-80 overflow-hidden shadow-lg'>
                 {/* Header with controls */}
                 <div className='px-3 py-2 border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'>
                   <div className='flex justify-between items-center text-xs'>
                     <span className='text-gray-600 dark:text-gray-400'>
-                      {filteredSymbols.length} symbols found
+                      {filteredCoins.length} coins found
                     </span>
                     <button
-                      onClick={toggleShowAllSymbols}
+                      onClick={toggleShowAllCoins}
                       className='text-blue-600 dark:text-blue-400 hover:underline'
                     >
-                      {showAllSymbols ? 'Show paginated' : 'Show all'}
+                      {showAllCoins ? 'Show paginated' : 'Show all'}
                     </button>
                   </div>
                 </div>
 
-                {/* Symbol list */}
+                {/* Coin list */}
                 <div className='max-h-48 overflow-y-auto'>
-                  {paginatedSymbols.length > 0 ? (
-                    paginatedSymbols.map(symbol => (
+                  {paginatedCoins.length > 0 ? (
+                    paginatedCoins.map(coin => (
                       <button
-                        key={symbol.symbol}
-                        onClick={() => handleSymbolSelect(symbol.symbol)}
+                        key={coin.symbol}
+                        onClick={() => handleCoinSelect(coin.symbol)}
                         className='w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center transition-colors'
                       >
-                        <span className='font-medium'>{symbol.symbol}</span>
+                        <span className='font-medium'>{coin.symbol}</span>
                         <span className='text-sm text-gray-500'>
-                          {symbol.baseCoin}
+                          {coin.baseCoin}
                         </span>
                       </button>
                     ))
                   ) : (
                     <div className='px-3 py-2 text-gray-500 text-sm'>
-                      No symbols found
+                      No coins found
                     </div>
                   )}
                 </div>
 
                 {/* Pagination controls */}
-                {!showAllSymbols && totalPages > 1 && (
+                {!showAllCoins && totalPages > 1 && (
                   <div className='px-3 py-2 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'>
                     <div className='flex justify-between items-center text-xs'>
                       <button
                         onClick={handlePrevPage}
-                        disabled={symbolPage === 0}
+                        disabled={coinPage === 0}
                         className='text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed'
                       >
                         Previous
                       </button>
                       <span className='text-gray-600 dark:text-gray-400'>
-                        Page {symbolPage + 1} of {totalPages}
+                        Page {coinPage + 1} of {totalPages}
                       </span>
                       <button
                         onClick={handleNextPage}
-                        disabled={symbolPage >= totalPages - 1}
+                        disabled={coinPage >= totalPages - 1}
                         className='text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed'
                       >
                         Next
@@ -778,7 +812,7 @@ Historical data is available in the exported CSV/JSON files.`;
       {/* Chart */}
       <div className='dashboard-card p-6 rounded-lg'>
         <h2 className='text-xl font-semibold mb-4'>
-          Price Chart - {selectedSymbol}
+          Price Chart - {selectedCoin}
         </h2>
         {loading ? (
           <div className='flex items-center justify-center h-96'>
@@ -787,6 +821,7 @@ Historical data is available in the exported CSV/JSON files.`;
         ) : historicalData.length > 0 ? (
           <TradingViewChart
             data={historicalData}
+            coin={selectedCoin}
             isDarkMode={isDarkMode}
             height={400}
           />
@@ -800,9 +835,7 @@ Historical data is available in the exported CSV/JSON files.`;
       {/* Orderbook Section */}
       <div className='dashboard-card p-6 rounded-lg'>
         <div className='flex items-center justify-between mb-4'>
-          <h2 className='text-xl font-semibold'>
-            Order Book - {selectedSymbol}
-          </h2>
+          <h2 className='text-xl font-semibold'>Order Book - {selectedCoin}</h2>
           <div className='flex items-center gap-2'>
             <button
               onClick={() => setAutoRefreshOrderbook(!autoRefreshOrderbook)}
