@@ -41,11 +41,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [rulerMode, setRulerMode] = useState(false);
-  const [rulerPoints, setRulerPoints] = useState<{
-    start?: { time: Time; price: number; x: number; y: number };
-    end?: { time: Time; price: number; x: number; y: number };
-  }>({});
 
   // Transform data for TradingView format
   const transformData = (chartData: CandleData[]) => {
@@ -225,32 +220,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
     chartContainerRef.current.appendChild(tooltip);
 
-    // Create ruler elements
-    const rulerLine = document.createElement('div');
-    rulerLine.style.position = 'absolute';
-    rulerLine.style.display = 'none';
-    rulerLine.style.background = isDarkMode ? '#3b82f6' : '#2563eb';
-    rulerLine.style.height = '2px';
-    rulerLine.style.pointerEvents = 'none';
-    rulerLine.style.zIndex = '999';
-    rulerLine.style.transformOrigin = 'left center';
-    chartContainerRef.current.appendChild(rulerLine);
-
-    const rulerInfo = document.createElement('div');
-    rulerInfo.style.position = 'absolute';
-    rulerInfo.style.display = 'none';
-    rulerInfo.style.padding = '6px 8px';
-    rulerInfo.style.background = isDarkMode ? '#1f2937' : '#f9fafb';
-    rulerInfo.style.border = `1px solid ${isDarkMode ? '#374151' : '#d1d5db'}`;
-    rulerInfo.style.borderRadius = '4px';
-    rulerInfo.style.color = isDarkMode ? '#e5e7eb' : '#374151';
-    rulerInfo.style.fontSize = '11px';
-    rulerInfo.style.fontFamily = 'monospace';
-    rulerInfo.style.pointerEvents = 'none';
-    rulerInfo.style.zIndex = '1001';
-    rulerInfo.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    chartContainerRef.current.appendChild(rulerInfo);
-
     // Chart click subscription will be handled in a separate useEffect
 
     // Add crosshair move handler for tooltip
@@ -328,12 +297,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       if (tooltip && chartContainerRef.current) {
         chartContainerRef.current.removeChild(tooltip);
       }
-      if (rulerLine && chartContainerRef.current) {
-        chartContainerRef.current.removeChild(rulerLine);
-      }
-      if (rulerInfo && chartContainerRef.current) {
-        chartContainerRef.current.removeChild(rulerInfo);
-      }
       if (chart) {
         chart.remove();
       }
@@ -369,134 +332,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     }
   }, [isDarkMode]);
 
-  // Handle ruler visualization
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    const rulerLine = chartContainerRef.current.querySelector(
-      'div[style*="transform-origin: left center"]'
-    ) as HTMLElement;
-    const rulerInfo = chartContainerRef.current.querySelector(
-      'div[style*="z-index: 1001"]'
-    ) as HTMLElement;
-
-    if (!rulerLine || !rulerInfo) return;
-
-    if (rulerPoints.start && rulerPoints.end) {
-      // Calculate distance and angle
-      const dx = rulerPoints.end.x - rulerPoints.start.x;
-      const dy = rulerPoints.end.y - rulerPoints.start.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-      // Position and style the line
-      rulerLine.style.left = rulerPoints.start.x + 'px';
-      rulerLine.style.top = rulerPoints.start.y + 'px';
-      rulerLine.style.width = distance + 'px';
-      rulerLine.style.transform = `rotate(${angle}deg)`;
-      rulerLine.style.display = 'block';
-
-      // Calculate price and time differences
-      const priceDiff = rulerPoints.end.price - rulerPoints.start.price;
-      const timeDiff =
-        (rulerPoints.end.time as number) - (rulerPoints.start.time as number);
-      const timeDiffHours = timeDiff / 3600;
-      const priceDiffPercent = (priceDiff / rulerPoints.start.price) * 100;
-
-      // Format time difference
-      let timeText = '';
-      if (timeDiffHours < 1) {
-        timeText = `${Math.round(timeDiff / 60)}m`;
-      } else if (timeDiffHours < 24) {
-        timeText = `${Math.round(timeDiffHours * 10) / 10}h`;
-      } else {
-        timeText = `${Math.round((timeDiffHours / 24) * 10) / 10}d`;
-      }
-
-      // Update info display
-      rulerInfo.innerHTML = `
-         <div>ΔPrice: ${priceDiff >= 0 ? '+' : ''}${priceDiff.toFixed(
-           4
-         )} (${priceDiffPercent >= 0 ? '+' : ''}${priceDiffPercent.toFixed(
-           2
-         )}%)</div>
-         <div>ΔTime: ${timeText}</div>
-         <div>Distance: ${Math.round(distance)}px</div>
-       `;
-
-      // Position info box
-      const midX = (rulerPoints.start.x + rulerPoints.end.x) / 2;
-      const midY = (rulerPoints.start.y + rulerPoints.end.y) / 2;
-      rulerInfo.style.left = midX + 'px';
-      rulerInfo.style.top = midY - 40 + 'px';
-      rulerInfo.style.display = 'block';
-    } else if (rulerPoints.start) {
-      // Show only start point
-      rulerLine.style.display = 'none';
-      rulerInfo.innerHTML = '<div>Click second point to measure</div>';
-      rulerInfo.style.left = rulerPoints.start.x + 'px';
-      rulerInfo.style.top = rulerPoints.start.y - 30 + 'px';
-      rulerInfo.style.display = 'block';
-    } else {
-      // Hide all ruler elements
-      rulerLine.style.display = 'none';
-      rulerInfo.style.display = 'none';
-    }
-  }, [rulerPoints]);
-
-  // Handle chart click subscription for ruler
-  useEffect(() => {
-    if (!chartRef.current || !candlestickSeriesRef.current) return;
-
-    const chart = chartRef.current;
-    const candlestickSeries = candlestickSeriesRef.current;
-
-    const handleChartClick = (param: {
-      point?: { x: number; y: number };
-      time?: Time;
-    }) => {
-      console.log('Chart clicked:', { rulerMode, param });
-      if (!param.point || !param.time) return;
-
-      // Check if ruler mode is active
-      if (!rulerMode) {
-        console.log('Ruler mode is not active');
-        return;
-      }
-
-      const price = candlestickSeries.coordinateToPrice(param.point.y);
-      if (price === null) return;
-
-      const point = {
-        time: param.time,
-        price: price,
-        x: param.point.x,
-        y: param.point.y,
-      };
-
-      console.log('Adding ruler point:', point);
-
-      setRulerPoints(currentPoints => {
-        if (!currentPoints.start) {
-          console.log('Setting start point');
-          return { start: point };
-        } else if (!currentPoints.end) {
-          console.log('Setting end point');
-          return { ...currentPoints, end: point };
-        } else {
-          console.log('Resetting and setting new start point');
-          return { start: point };
-        }
-      });
-    };
-
-    chart.subscribeClick(handleChartClick);
-
-    return () => {
-      chart.unsubscribeClick(handleChartClick);
-    };
-  }, [rulerMode]);
-
   return (
     <div className='relative'>
       {isLoading && (
@@ -504,40 +339,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
         </div>
       )}
-      <div className='absolute top-2 left-2 z-20 flex gap-2'>
-        <button
-          onClick={() => {
-            console.log('Ruler button clicked, current rulerMode:', rulerMode);
-            setRulerMode(!rulerMode);
-            console.log('Setting rulerMode to:', !rulerMode);
-            if (rulerMode) {
-              setRulerPoints({});
-              console.log('Cleared ruler points');
-            }
-          }}
-          className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-            rulerMode
-              ? 'bg-blue-600 text-white'
-              : isDarkMode
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          📏 Ruler
-        </button>
-        {rulerMode && rulerPoints.start && (
-          <button
-            onClick={() => setRulerPoints({})}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-              isDarkMode
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-red-500 text-white hover:bg-red-600'
-            }`}
-          >
-            Clear
-          </button>
-        )}
-      </div>
       <div
         ref={chartContainerRef}
         className='w-full'
