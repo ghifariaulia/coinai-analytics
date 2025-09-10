@@ -204,6 +204,78 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     candlestickSeriesRef.current = candlestickSeries;
     volumeSeriesRef.current = volumeSeries;
 
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.display = 'none';
+    tooltip.style.padding = '8px';
+    tooltip.style.background = isDarkMode ? '#222831' : '#ffffff';
+    tooltip.style.border = `1px solid ${isDarkMode ? '#485c7b' : '#cccccc'}`;
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.color = isDarkMode ? '#ffffff' : '#191919';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.fontFamily = 'monospace';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.zIndex = '1000';
+    tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+    chartContainerRef.current.appendChild(tooltip);
+
+    // Add crosshair move handler for tooltip
+    chart.subscribeCrosshairMove(param => {
+      if (!param.point || !param.time || !candlestickSeries) {
+        tooltip.style.display = 'none';
+        return;
+      }
+
+      const data = param.seriesData.get(candlestickSeries) as CandlestickData;
+      if (!data) {
+        tooltip.style.display = 'none';
+        return;
+      }
+
+      const open = data.open;
+      const high = data.high;
+      const low = data.low;
+      const close = data.close;
+      const change = close - open;
+      const changePercent = (change / open) * 100;
+      const changeColor = change >= 0 ? '#10b981' : '#ef4444';
+      const changeSign = change >= 0 ? '+' : '';
+
+      const valueColor = isDarkMode ? '#ffffff' : '#6b7280';
+      tooltip.innerHTML = `
+          <div>Open: <span style="color: ${valueColor};">${open.toFixed(4)}</span></div>
+          <div>High: <span style="color: ${valueColor};">${high.toFixed(4)}</span></div>
+          <div>Low: <span style="color: ${valueColor};">${low.toFixed(4)}</span></div>
+          <div>Close: <span style="color: ${valueColor};">${close.toFixed(4)}</span></div>
+          <div>Change: <span style="color: ${changeColor};">${changeSign}${change.toFixed(4)} (${changeSign}${changePercent.toFixed(2)}%)</span></div>
+        `;
+
+      const container = chartContainerRef.current;
+      if (!container) return;
+
+      const tooltipWidth = 200;
+      const tooltipHeight = 120;
+
+      let left = param.point.x + 10;
+      let top = param.point.y - 10;
+
+      // Adjust position if tooltip would go outside container
+      if (left + tooltipWidth > container.clientWidth) {
+        left = param.point.x - tooltipWidth - 10;
+      }
+      if (top < 0) {
+        top = param.point.y + 10;
+      }
+      if (top + tooltipHeight > container.clientHeight) {
+        top = container.clientHeight - tooltipHeight - 10;
+      }
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+      tooltip.style.display = 'block';
+    });
+
     setIsLoading(false);
 
     // Handle resize
@@ -220,6 +292,9 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (tooltip && chartContainerRef.current) {
+        chartContainerRef.current.removeChild(tooltip);
+      }
       if (chart) {
         chart.remove();
       }
