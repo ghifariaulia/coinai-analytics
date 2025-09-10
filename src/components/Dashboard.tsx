@@ -332,14 +332,11 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       granularityOptions.find(option => option.value === granularity)?.label ||
       granularity;
 
-    return `ROLE:
-
+    return `
 Act as an elite cryptocurrency research analyst at a top-tier digital asset fund.
 Your task is to analyze a cryptocurrency using both fundamental and macroeconomic perspectives. Structure your response according to the framework below.
 
-Input Section
-
-Crypto Token / Coin: ${selectedCoin}
+Crypto Token/Coin: ${selectedCoin}
 
 Data Summary:
 - Period: ${summary.startDate} to ${summary.endDate} (${summary.totalDays} days)
@@ -354,31 +351,11 @@ Instructions:
 
 Use the following structure to deliver a clear, well-reasoned crypto research report:
 
-1. Fundamental Analysis
-- Analyze price momentum, volume trends, and market cap dynamics
-- Compare valuation metrics vs sector peers (market cap, trading volume, etc.)
-- Review on-chain metrics, whale activity, and exchange flows
-
-2. Thesis Validation
-- Present 3 arguments supporting the thesis
-- Highlight 2 counter-arguments or key risks
-- Provide a final **verdict**: Bullish / Bearish / Neutral with justification
-
-3. Sector & Macro View
-- Give a short crypto sector overview
-- Outline relevant macroeconomic trends affecting crypto
-- Explain token's competitive positioning within its ecosystem
-
-4. Catalyst Watch
-- List upcoming events (protocol upgrades, partnerships, regulatory developments, etc.)
-- Identify both **short-term** and **long-term** catalysts
-
-5. Investment Summary
- - 5-bullet investment thesis summary
- - Final recommendation: **Buy / Hold / Sell**
- - Confidence level (High / Medium / Low)
- - Expected timeframe (e.g. 6–12 months)
- - **Futures Setup**: Long or Short position recommendation with entry/exit levels
+1. Technical analysis of the price movement
+2. Key support and resistance levels
+3. Trading recommendations (Buy, Sell, Hold) and Futures Setup
+4. Risk assessment
+5. Potential future price targets
 
 ✅ Formatting Requirements
 - Use **markdown**
