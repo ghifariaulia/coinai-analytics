@@ -76,7 +76,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       layout: {
         background: {
           type: ColorType.Solid,
-          color: isDarkMode ? '#1f2937' : '#ffffff',
+          color: isDarkMode ? '#222831' : '#ffffff',
         },
         textColor: isDarkMode ? '#e5e7eb' : '#374151',
         fontSize: 12,
@@ -218,7 +218,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         layout: {
           background: {
             type: ColorType.Solid,
-            color: isDarkMode ? '#1a1a1a' : '#ffffff',
+            color: isDarkMode ? '#222831' : '#ffffff',
           },
           textColor: isDarkMode ? '#d1d4dc' : '#191919',
         },
