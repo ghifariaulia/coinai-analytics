@@ -119,6 +119,21 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         timeVisible: true,
         secondsVisible: false,
       },
+      localization: {
+        timeFormatter: (time: number) => {
+          const date = new Date(time * 1000);
+          return date.toLocaleString([], {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          });
+        },
+        dateFormat: 'dd MMM yyyy',
+      },
       handleScroll: {
         mouseWheel: true,
         pressedMouseMove: true,
