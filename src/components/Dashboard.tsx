@@ -8,6 +8,7 @@ import {
   CandleData,
   SymbolInfo,
   OrderbookData,
+  MarketType,
 } from '@/services/bitgetApi';
 import { cn, formatCurrency, formatPercentage } from '@/lib/utils';
 
@@ -48,9 +49,15 @@ const timeRangeOptions = [
   { value: 730, label: '2 Years' },
 ];
 
+const marketTypeOptions = [
+  { value: 'spot' as MarketType, label: 'Spot' },
+  { value: 'futures' as MarketType, label: 'Futures' },
+];
+
 const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const [symbols, setSymbols] = useState<SymbolInfo[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTCUSDT');
+  const [marketType, setMarketType] = useState<MarketType>('spot');
   const [symbolSearch, setSymbolSearch] = useState<string>('');
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] =
     useState<boolean>(false);
@@ -58,10 +65,13 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     useState<boolean>(false);
   const [isGranularityDropdownOpen, setIsGranularityDropdownOpen] =
     useState<boolean>(false);
+  const [isMarketTypeDropdownOpen, setIsMarketTypeDropdownOpen] =
+    useState<boolean>(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeRangeDropdownRef = useRef<HTMLDivElement>(null);
   const granularityDropdownRef = useRef<HTMLDivElement>(null);
+  const marketTypeDropdownRef = useRef<HTMLDivElement>(null);
   const [historicalData, setHistoricalData] = useState<CandleData[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -99,7 +109,11 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     setOrderbookLoading(true);
     setOrderbookError('');
     try {
-      const orderbookData = await bitgetApi.getOrderbook(selectedSymbol, 20);
+      const orderbookData = await bitgetApi.getOrderbookByMarket(
+        marketType as MarketType,
+        selectedSymbol,
+        20
+      );
       setOrderbook(orderbookData);
     } catch (err) {
       console.error('Failed to load orderbook:', err);
@@ -107,13 +121,14 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     } finally {
       setOrderbookLoading(false);
     }
-  }, [selectedSymbol]);
+  }, [selectedSymbol, marketType]);
 
   const loadHistoricalData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await bitgetApi.getDataForAI(
+      const result = await bitgetApi.getDataForAIByMarket(
+        marketType as MarketType,
         selectedSymbol,
         timeRange,
         granularity
@@ -137,7 +152,7 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedSymbol, timeRange, granularity]);
+  }, [selectedSymbol, marketType, timeRange, granularity]);
 
   // Apply dark mode to document
   useEffect(() => {
@@ -177,6 +192,12 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       ) {
         setIsGranularityDropdownOpen(false);
       }
+      if (
+        marketTypeDropdownRef.current &&
+        !marketTypeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsMarketTypeDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -213,10 +234,14 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   useEffect(() => {
     const loadSymbols = async () => {
       try {
-        const symbolsData = await bitgetApi.getSymbols();
+        const symbolsData = await bitgetApi.getSymbolsByMarket(
+          marketType as MarketType
+        );
         // Filter based on quote currency and status
+        // Note: spot symbols use 'online', futures symbols use 'normal'
+        const validStatus = marketType === 'futures' ? 'normal' : 'online';
         let filteredData = symbolsData.filter(
-          s => s.quoteCoin === quoteCurrencyFilter && s.status === 'online'
+          s => s.quoteCoin === quoteCurrencyFilter && s.status === validStatus
         );
 
         // Apply popular filter if enabled
@@ -228,14 +253,14 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
 
         // Sort alphabetically
         filteredData.sort((a, b) => a.symbol.localeCompare(b.symbol));
-        setSymbols(filteredData);
+        setSymbols(filteredData as SymbolInfo[]);
       } catch (err) {
         console.error('Failed to load symbols:', err);
         setError('Failed to load available symbols');
       }
     };
     loadSymbols();
-  }, [quoteCurrencyFilter, showPopularOnly]);
+  }, [quoteCurrencyFilter, showPopularOnly, marketType]);
 
   // Load historical data when symbol or time range changes
   useEffect(() => {
@@ -414,7 +439,7 @@ Historical data is available in the exported CSV/JSON files.`;
       </div>
 
       {/* Controls */}
-      <div className='dashboard-card grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg'>
+      <div className='dashboard-card grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg'>
         <div className='relative' ref={dropdownRef}>
           <label className='block text-sm font-medium mb-2'>Symbol</label>
           <div className='relative'>
@@ -512,6 +537,56 @@ Historical data is available in the exported CSV/JSON files.`;
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className='relative' ref={marketTypeDropdownRef}>
+          <label className='block text-sm font-medium mb-2'>Market Type</label>
+          <div className='relative'>
+            <button
+              onClick={() =>
+                setIsMarketTypeDropdownOpen(!isMarketTypeDropdownOpen)
+              }
+              className='dashboard-input w-full p-2 rounded-md pr-8 text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors'
+            >
+              {marketTypeOptions.find(option => option.value === marketType)
+                ?.label || 'Select Market Type'}
+              <svg
+                className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-transform ${
+                  isMarketTypeDropdownOpen ? 'rotate-180' : ''
+                }`}
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M19 9l-7 7-7-7'
+                />
+              </svg>
+            </button>
+            {isMarketTypeDropdownOpen && (
+              <div className='absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg'>
+                {marketTypeOptions.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setMarketType(option.value);
+                      setIsMarketTypeDropdownOpen(false);
+                    }}
+                    className={cn(
+                      'w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+                      marketType === option.value &&
+                        'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
